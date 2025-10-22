@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 OptiProphet is a Prophet-inspired forecasting library implemented from scratch in Python. The project extends classical additive models with changepoint-aware trend detection, Fourier-based seasonalities, autoregressive/moving-average residual modelling, and Hermeneutic AI explainability. The work is stewarded by Şadi Evren Şeker and draws heavily on OptiWisdom's OptiScorer experimentation programme for robustness heuristics, interpretability patterns, and dataset curation.
-<img src="https://optiwisdom.com/wp-content/uploads/2025/10/optiprophet.png">
+<img src="https://optiwisdom.com/wp-content/uploads/2025/10/optiprophet.png" width=300 height=300>
 ## 2. System Architecture Overview
 - **Package layout** – All runtime code lives under `src/optitime/` following the modern Python packaging layout so editable installs (`pip install -e .`) work seamlessly.
 - **Core model (`model.py`)** – Hosts the `OptiProphet` estimator, feature engineering helpers, changepoint handling, forecasting, backtesting, diagnostics integration, and the Hermeneutic explainability bridge.
@@ -14,7 +14,7 @@ OptiProphet is a Prophet-inspired forecasting library implemented from scratch i
   - `datasets/` – Bundled CSV benchmarks plus loader utilities exposed through `optitime.load_dataset()` and `optitime.available_datasets()`.
 - **Tests & walkthroughs** – Live under `tests/`, including dataset integration tests, smoke-test scripts, and visual scenario runners that emit PNG diagnostics.
 
-<img src="https://optiwisdom.com/wp-content/uploads/2025/10/optiprophet-info-graphic.png">
+<img src="https://optiwisdom.com/wp-content/uploads/2025/10/optiprophet-info-graphic.png" width=500 height=500>
 
 ## 3. Technology Stack & Rationale
 - **Python 3.10+** – Chosen for native dataclasses, typing support, and ecosystem maturity for scientific computing.
