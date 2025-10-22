@@ -4,6 +4,8 @@ OptiProphet is a from-scratch, Prophet-inspired forecasting library written enti
 
 > 📌 **OptiScorer heritage** – Many of the decomposition, scoring, and robustness heuristics originate from OptiWisdom's OptiScorer research programmes. OptiProphet packages those lessons into an accessible, open Python toolkit while crediting the foundational OptiScorer work.
 
+<img src="https://optiwisdom.com/wp-content/uploads/2025/10/optiprophet.png" width=300 height=300>
+
 ## Why OptiProphet?
 
 | Capability | What it gives you |
@@ -15,6 +17,8 @@ OptiProphet is a from-scratch, Prophet-inspired forecasting library written enti
 | **Backtesting & diagnostics** | Rolling-origin backtests, outlier surfacing, component strength analysis, and performance metrics. |
 | **Robustness toolkit** | Automatic interpolation for sparse data, changepoint detection, and outlier reporting to survive structural breaks. |
 | **Hermeneutic explainability** | Narrative and quantitative explanations shaped by HermeAI insights and OptiScorer decision intelligence. |
+
+<img src="https://optiwisdom.com/wp-content/uploads/2025/10/optiprophet-info-graphic.png" widht=500 height=500>
 
 All logic is implemented without relying on Prophet or other probabilistic frameworks—only `numpy` and `pandas` are required.
 
