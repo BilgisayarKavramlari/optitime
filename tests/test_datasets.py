@@ -46,6 +46,29 @@ class DatasetIntegrationTest(unittest.TestCase):
                 backtest_results = model.backtest(horizon=horizon, step=step)
                 self.assertFalse(backtest_results.empty)
 
+    def test_airlines_traffic_specific_dataset(self) -> None:
+        df = load_dataset("airlines_traffic")
+        self.assertGreaterEqual(len(df), 100)
+        self.assertIn("ds", df.columns)
+        self.assertIn("y", df.columns)
+
+        model = OptiProphet(
+            n_changepoints=12,
+            ar_order=3,
+            ma_order=1,
+            min_history=48,
+            min_success_r2=-1.0,
+            max_mape=None,
+        )
+
+        model.fit(df)
+        components = model.history_components()
+        self.assertIn("trend", components.columns)
+        self.assertIn("seasonality", components.columns)
+
+        backtest_results = model.backtest(horizon=12, step=3)
+        self.assertFalse(backtest_results.empty)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "optitime-prophet"
 version = "0.1.0"
-description = "A Prophet-inspired forecasting library with autoregressive, changepoint, and diagnostic enhancements."
+description = "A Prophet-inspired forecasting library distilling OptiWisdom OptiScorer insights into autoregressive, changepoint, and diagnostic enhancements."
 readme = "README.md"
 authors = [
-  {name = "OptiWisdom Analytics", email = "contact@optiwisdom.ai"},
+  {name = "Şadi Evren Şeker", email = "optitime@optiwisdom.com"},
 ]
 requires-python = ">=3.9"
 dependencies = [
@@ -25,9 +25,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/optiwisdom/optitime"
-Documentation = "https://github.com/optiwisdom/optitime"
-Issues = "https://github.com/optiwisdom/optitime/issues"
+Homepage = "https://github.com/bilgisayarkavramlari/optitime"
+Documentation = "https://github.com/bilgisayarkavramlari/optitime"
+Issues = "https://github.com/bilgisayarkavramlari/optitime/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

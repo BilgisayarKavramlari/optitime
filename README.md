@@ -1,6 +1,8 @@
 # OptiProphet
 
-OptiProphet is a from-scratch, Prophet-inspired forecasting library written entirely in Python. It blends classic trend/seasonality decomposition with autoregressive and moving-average enrichments, dynamic changepoint detection, and extensive diagnostics so you can trust the signals hidden inside your time series. The project is engineered with upcoming PyPI distribution in mind.
+OptiProphet is a from-scratch, Prophet-inspired forecasting library written entirely in Python. It blends classic trend/seasonality decomposition with autoregressive and moving-average enrichments, dynamic changepoint detection, and extensive diagnostics so you can trust the signals hidden inside your time series. The project is engineered with upcoming PyPI distribution in mind and was crafted by **Şadi Evren Şeker** ([@bilgisayarkavramlari](https://github.com/bilgisayarkavramlari)) with direct guidance from OptiWisdom's OptiScorer experimentation track.
+
+> 📌 **OptiScorer heritage** – Many of the decomposition, scoring, and robustness heuristics originate from OptiWisdom's OptiScorer research programmes. OptiProphet packages those lessons into an accessible, open Python toolkit while crediting the foundational OptiScorer work.
 
 ## Why OptiProphet?
 
@@ -26,7 +28,7 @@ pip install optitime-prophet  # once published
 For local development:
 
 ```bash
-git clone https://github.com/optiwisdom/optitime.git
+git clone https://github.com/bilgisayarkavramlari/optitime.git
 cd optitime
 pip install -e .
 ```
@@ -90,6 +92,7 @@ The current catalogue contains:
 | Name | Description | Frequency |
 | --- | --- | --- |
 | `air_passengers` | Monthly totals of international airline passengers (1949-1960). | Monthly |
+| `airlines_traffic` | Monthly airline passenger statistics curated from OptiWisdom OptiScorer analyses inspired by the Kaggle Airlines Traffic Passenger Statistics dataset. | Monthly |
 | `shampoo_sales` | Monthly shampoo sales in millions of units (1901-1903). | Monthly |
 | `us_acc_deaths` | Monthly accidental deaths in the United States (1973-1978). | Monthly |
 
@@ -133,7 +136,7 @@ If you plan to contribute back via pull requests, make sure your local clone
 knows where to send them. Configure the Git remote once after cloning:
 
 ```bash
-git remote add origin https://github.com/optiwisdom/optitime.git
+git remote add origin https://github.com/bilgisayarkavramlari/optitime.git
 git fetch origin
 ```
 
@@ -151,6 +154,10 @@ make_pr
 
 This ensures the automation has enough repository context to open a pull
 request successfully.
+
+## Maintainer & contact
+
+OptiProphet is maintained by Şadi Evren Şeker. For enquiries or partnership opportunities please reach out via **optitime@optiwisdom.com**.
 
 ## License
 

@@ -28,6 +28,16 @@ _DATASETS: Dict[str, Dataset] = {
         start="1949-01-01",
         end="1960-12-01",
     ),
+    "airlines_traffic": Dataset(
+        filename="airlines_traffic.csv",
+        description=(
+            "Monthly airline passenger volumes curated from OptiWisdom OptiScorer"
+            " analyses inspired by the Kaggle Airlines Traffic Passenger Statistics release."
+        ),
+        frequency="MS",
+        start="2010-01-01",
+        end="2023-12-01",
+    ),
     "shampoo_sales": Dataset(
         filename="shampoo_sales.csv",
         description="Monthly shampoo sales in millions of units (1901-1903).",
