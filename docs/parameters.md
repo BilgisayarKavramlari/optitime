@@ -1,58 +1,53 @@
-# Parametre Rehberi
+# Parameter guide
 
-OptiProphet, Prophet yaklaşımından türetilen OptiWisdom OptiScorer içgörülerini
-taşıyan parametrik bir altyapı sunar. Aşağıdaki tablolar en kritik ayarların
-amacını, tipik aralıklarını ve ilgili bilimsel referansları listeler.
+OptiProphet offers a configurable framework that extends Prophet-style trend and
+seasonality with OptiWisdom OptiScorer lessons on robustness, diagnostics, and
+uncertainty calibration. The tables below describe the most important settings,
+typical ranges, and supporting references.
 
-## Model Yapısı
+## Model structure
 
-| Parametre | Açıklama | Önerilen değerler | Referans |
+| Parameter | Description | Recommended values | Reference |
 | --- | --- | --- | --- |
-| `n_changepoints` | Trend kırılmalarını yakalamak için kullanılan potansiyel nokta sayısı. | 5-25 arası, veri uzunluğuna göre. | Taylor & Letham (2018) |
-| `seasonalities` | Her sezonsallık için periyot (`period`) ve Fourier derecesi (`order`). | Günlük/haftalık/aylık gibi bilinen periyotlar. | Taylor & Letham (2018) |
-| `ar_order`, `ma_order` | Kısa vadeli bağımlılığı yakalayan AR/MA gecikmeleri. | AR: 1-5, MA: 0-3. | Box, Jenkins & Reinsel (2015) |
-| `regressors` | Dışsal değişkenlerin listesi. | İş bağlamına uygun kolon adları. | Hyndman & Athanasopoulos (2021) |
+| `n_changepoints` | Number of candidate changepoints used to capture trend shifts. | 5–25 depending on series length. | Taylor & Letham (2018) |
+| `seasonalities` | Mapping of seasonalities with `period` and Fourier `order`. | Match known cycles (daily/weekly/monthly). | Taylor & Letham (2018) |
+| `ar_order`, `ma_order` | Autoregressive and moving-average lags for short-term dependence. | AR: 1–5, MA: 0–3. | Box, Jenkins & Reinsel (2015) |
+| `regressors` | Names of external regressors supplied during fit and predict. | Use business-relevant drivers. | Hyndman & Athanasopoulos (2021) |
 
-## Tarihsel Bileşen Görünürlüğü
+## Historical component visibility
 
-| Parametre | Açıklama |
+| Parameter | Description |
 | --- | --- |
-| `historical_components` | `{"trend": True, "seasonality": False}` gibi anahtar/değer çiftleriyle `history_components()` çıktısındaki bileşenleri varsayılan olarak açıp kapatır.
-| `history_components(include_components=..., component_overrides=...)` | Çağrı bazında toplu veya seçici görünürlük sağlar.
-| `history_components(include_uncertainty=False)` | `yhat_lower`, `yhat_upper` ve kantil sütunlarını gizler.
+| `historical_components` | Default visibility map for `history_components()` output such as `{"trend": True, "seasonality": False}`. |
+| `history_components(include_components=..., component_overrides=...)` | Toggle groups or individual components per call. |
+| `history_components(include_uncertainty=False)` | Suppress `yhat_lower`, `yhat_upper`, and quantile columns. |
 
-## Gelecek Tahmin Kontrolleri
+## Future forecast controls
 
-| Parametre | Açıklama |
+| Parameter | Description |
 | --- | --- |
-| `forecast_components` | `predict()` çıktısındaki bileşen sütunlarının varsayılan olarak eklenip eklenmeyeceğini belirler.
-| `predict(include_components=False)` | Gelecek tahminini yalın (`ds`, `yhat`) formatında döndürür.
-| `predict(component_overrides={"seasonality": False})` | Yalnızca hedeflenen bileşenleri gizler.
-| `predict(include_uncertainty=False)` | Güven aralıklarını ve kantil sütunlarını kaldırır.
-| `predict(quantile_subset=[0.1, 0.5, 0.9])` | Yalnızca seçilen kantilleri döndürür; `self.quantiles` içinde olmalıdır.
+| `forecast_components` | Whether `predict()` includes component columns by default. |
+| `predict(include_components=False)` | Return only `ds` and `yhat` for streamlined consumption. |
+| `predict(component_overrides={"seasonality": False})` | Hide selected components in the forecast output. |
+| `predict(include_uncertainty=False)` | Remove interval and quantile columns. |
+| `predict(quantile_subset=[0.1, 0.5, 0.9])` | Emit only the requested quantile columns (must already exist in `self.quantiles`). |
 
-## Backtest Stratejileri
+## Backtest strategies
 
-| Strateji | Açıklama | Parametreler |
+| Strategy | Description | Parameters |
 | --- | --- | --- |
-| `expanding` | Her değerlendirme adımında eğitim penceresi genişler. | Varsayılan, klasik Prophet yaklaşımı. |
-| `sliding` | Sabit uzunluklu bir pencere ilerletilir. | `window` parametresi pencere boyutunu belirler (varsayılan: `min_history`). |
-| `anchored` | İlk `window` gözlemine sabitlenir ve her değerlendirme için aynı eğitim seti kullanılır. | Transfer öğrenimi benzeri sabit tabanlı senaryolar için. |
+| `expanding` | Expands the training window with each evaluation step. | Default behaviour inherited from Prophet workflows. |
+| `sliding` | Moves a fixed-size window across the history. | `window` controls the window size (defaults to `min_history`). |
+| `anchored` | Uses a fixed window starting at the first observation. | Useful for transfer-learning style baselines. |
 
-`backtest()` fonksiyonundaki `include_components`, `component_overrides`,
-`include_uncertainty` ve `quantile_subset` parametreleri `predict()` ile aynı
-anlamlara sahiptir ve değerlendirme dilimlerine ait tahmin çıktılarının
-biçimlendirilmesini kontrol eder.
+`backtest()` accepts the same formatting arguments as `predict()` (`include_components`,
+`component_overrides`, `include_uncertainty`, `quantile_subset`) so the evaluation
+output matches your downstream requirements.
 
-## Bilimsel Referanslar
+## References
 
-* **Taylor, S. J., & Letham, B. (2018).** Forecasting at scale. *The American
-  Statistician*, 72(1), 37-45.
-* **Box, G. E. P., Jenkins, G. M., Reinsel, G. C., & Ljung, G. M. (2015).**
-  *Time Series Analysis: Forecasting and Control* (5th ed.). Wiley.
-* **Hyndman, R. J., & Athanasopoulos, G. (2021).** *Forecasting: Principles and
-  Practice* (3rd ed.). OTexts.
+- **Taylor, S. J., & Letham, B. (2018).** Forecasting at scale. *The American Statistician*, 72(1), 37-45.
+- **Box, G. E. P., Jenkins, G. M., Reinsel, G. C., & Ljung, G. M. (2015).** *Time Series Analysis: Forecasting and Control* (5th ed.). Wiley.
+- **Hyndman, R. J., & Athanasopoulos, G. (2021).** *Forecasting: Principles and Practice* (3rd ed.). OTexts.
 
-Bu referanslar OptiScorer çalışmalarında kullanılan bilimsel altyapıyı
-belgeleyerek OptiProphet'in parametre tasarımlarının dayandığı kaynakları
-paylaşır.
+These works capture the academic foundations that informed OptiWisdom's OptiScorer research and, by extension, the defaults selected for OptiProphet.

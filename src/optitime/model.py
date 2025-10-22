@@ -344,7 +344,7 @@ class OptiProphet:
         result_frames = []
         if include_history:
             result_frames.append(base_history)
-        if not horizon_df.empty:
+        if horizon_df.shape[0] > 0:
             result_frames.append(predictions)
         if not result_frames:
             return base_history
@@ -427,6 +427,8 @@ class OptiProphet:
                 include_uncertainty=include_uncertainty,
                 quantile_subset=quantiles,
             )
+            if "ds" not in forecast.columns or forecast.shape[0] == 0:
+                continue
             merged = test_slice.merge(forecast, on="ds", how="left")
             if merged["yhat"].isna().any():
                 continue
@@ -714,7 +716,7 @@ class OptiProphet:
         include_uncertainty: bool,
         quantiles: Iterable[float],
     ) -> pd.DataFrame:
-        if future.empty:
+        if future.shape[0] == 0:
             return pd.DataFrame(columns=["ds", "yhat", "yhat_lower", "yhat_upper"])
 
         coeffs = self.coef_

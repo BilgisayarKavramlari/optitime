@@ -44,8 +44,8 @@ def _plot_forecast(
 ) -> None:
     merged = forecast.merge(df[["ds", "y"]], on="ds", how="left")
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(merged["ds"], merged["y"], label="Gerçek", color="#4c72b0")
-    ax.plot(merged["ds"], merged["yhat"], label="Tahmin", color="#dd8452")
+    ax.plot(merged["ds"], merged["y"], label="Actual", color="#4c72b0")
+    ax.plot(merged["ds"], merged["yhat"], label="Forecast", color="#dd8452")
 
     if {"yhat_lower", "yhat_upper"}.issubset(merged.columns):
         ax.fill_between(
@@ -54,18 +54,18 @@ def _plot_forecast(
             merged["yhat_upper"],
             alpha=0.2,
             color="#dd8452",
-            label="Tahmin Aralığı",
+            label="Prediction interval",
         )
 
     ax.set_title(title)
-    ax.set_xlabel("Tarih")
-    ax.set_ylabel("Yolcu Sayısı")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Passenger volume")
     ax.legend()
     fig.autofmt_xdate()
     output_path = OUTPUT_DIR / output_name
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
-    print(f"Kaydedildi: {output_path}")
+    print(f"Saved: {output_path}")
 
 
 def _plot_backtest(
@@ -75,20 +75,20 @@ def _plot_backtest(
     output_name: str,
 ) -> None:
     if backtest.empty:
-        print("Backtest sonucu boş; grafik oluşturulmadı.")
+        print("Backtest results empty; plot skipped.")
         return
 
     fig, ax = plt.subplots(figsize=(10, 4))
     ax.plot(backtest["start"], backtest["rmse"], marker="o", label="RMSE")
     ax.set_title(title)
-    ax.set_xlabel("Başlangıç")
+    ax.set_xlabel("Start date")
     ax.set_ylabel("RMSE")
     ax.grid(True, alpha=0.3)
     fig.autofmt_xdate()
     output_path = OUTPUT_DIR / output_name
     fig.savefig(output_path, bbox_inches="tight")
     plt.close(fig)
-    print(f"Kaydedildi: {output_path}")
+    print(f"Saved: {output_path}")
 
 
 def run_variant(
@@ -123,7 +123,7 @@ def run_variant(
     _plot_forecast(
         df=df,
         forecast=forecast,
-        title=f"{name} - Tahmin senaryosu ({strategy})",
+        title=f"{name} - Forecast scenario ({strategy})",
         output_name=f"airlines_forecast_{strategy}.png",
     )
 
@@ -145,10 +145,10 @@ def run_variant(
 
 def main() -> None:
     df = load_dataset("airlines_traffic")
-    print("OptiWisdom OptiScorer türevi airlines_traffic veri kümesi yüklendi.")
+    print("OptiWisdom OptiScorer-derived airlines_traffic dataset loaded.")
     variants = [
         {
-            "name": "Expanding + Bileşenler",
+            "name": "Expanding + Components",
             "strategy": "expanding",
             "include_components": True,
             "component_overrides": None,
@@ -156,7 +156,7 @@ def main() -> None:
             "quantile_subset": None,
         },
         {
-            "name": "Sliding + Sezonsuz",
+            "name": "Sliding + Seasonality off",
             "strategy": "sliding",
             "include_components": True,
             "component_overrides": {"seasonality": False},
@@ -168,7 +168,7 @@ def main() -> None:
     for variant in variants:
         strategy = variant["strategy"]
         if strategy not in BACKTEST_STRATEGIES:
-            print(f"Atlanan senaryo: bilinmeyen strateji {strategy}")
+            print(f"Skipping scenario: unknown strategy {strategy}")
             continue
         run_variant(df=df, **variant)
 

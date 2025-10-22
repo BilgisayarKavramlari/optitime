@@ -1,13 +1,14 @@
-# OptiProphet API Özeti
+# OptiProphet API Overview
 
-Bu belge OptiWisdom OptiScorer mirasını taşıyan OptiProphet kütüphanesinin
-kamusal arayüzünü özetler. Aşağıdaki başlıklar `optitime` paketinin PyPI
-dağıtımına hazır olacak şekilde planlandığını ve tüm işlevlerin saf Python ile
-gerçekleştirildiğini hatırlatır.
+This document summarises the public surface of the OptiProphet library, a
+Prophet-inspired engine that carries forward the forecasting and diagnostic
+principles pioneered inside OptiWisdom's OptiScorer programme. Everything is
+implemented in pure Python and packaged for straightforward publication to
+PyPI.
 
 ## `optitime.OptiProphet`
 
-### Yapılandırıcı (`__init__`)
+### Constructor (`__init__`)
 
 ```python
 OptiProphet(
@@ -30,23 +31,29 @@ OptiProphet(
 )
 ```
 
-* `historical_components`: eğitim geçmişindeki trend, sezonsallık, regresör,
-  AR ve MA katkılarının varsayılan görünürlüğünü ayarlar.
-* `forecast_components`: geleceğe yönelik tahminlerde bileşen sütunlarının
-  varsayılan olarak eklenip eklenmeyeceğini belirler.
-* `default_backtest_strategy` ve `default_backtest_window`: `backtest()`
-  çağrısı sırasında varsayılan stratejiyi belirler (`expanding`, `sliding`,
-  `anchored`).
+Key options:
+
+- `historical_components`: default visibility for trend, seasonality, regressor,
+  autoregressive, moving-average, and residual columns returned by
+  `history_components()`.
+- `forecast_components`: whether `predict()` includes component columns by
+  default.
+- `default_backtest_strategy` / `default_backtest_window`: baseline behaviour for
+  `backtest()` when no strategy or window is supplied (`"expanding"`,
+  `"sliding"`, or `"anchored"`).
 
 ### `fit(df: pd.DataFrame) -> OptiProphet`
 
-`df` veri çerçevesinin `ds` (zaman damgası) ve `y` (hedef) sütunları içerdiğini
-varsayar. Veri temizliği, interpolasyon ve yoğun hata kontrolü içerir.
+Validates that the input frame contains `ds` (timestamp) and `y` (target)
+columns, performs interpolation for sparse spans, engineers features, and solves
+for the regression coefficients. Extensive validation mirrors OptiScorer's
+quality thresholds and raises descriptive exceptions on failure.
 
 ### `make_future_dataframe(periods: int, freq: Optional[str] = None, include_history: bool = False)`
 
-Prophet tarzı gelecek veri çerçevesi üretir. `include_history=True` olduğunda
-eğitim zaman damgalarını da döndürür.
+Creates a Prophet-style future dataframe. When `include_history=True` the
+returned frame contains the historical timestamps followed by the requested
+horizon.
 
 ### `predict(...)`
 
@@ -63,12 +70,14 @@ predict(
 )
 ```
 
-* `include_components`: tüm bileşen sütunlarını topluca açıp kapatır.
-* `component_overrides`: belirli bileşenleri (ör. `{"seasonality": False}`)
-  devre dışı bırakır.
-* `include_uncertainty`: güven aralıkları (`yhat_lower`, `yhat_upper`) ve
-  seçili kantil sütunlarını (`yhat_q0.10` vb.) ekler veya kaldırır.
-* `quantile_subset`: sadece belirtilen kantilleri döndürür.
+Important arguments:
+
+- `include_components`: toggles all component columns on or off at once.
+- `component_overrides`: selectively hide components, e.g.
+  `{"seasonality": False}`.
+- `include_uncertainty`: controls whether `yhat_lower`, `yhat_upper`, and
+  quantile columns (`yhat_q0.10`, etc.) are emitted.
+- `quantile_subset`: return only a chosen subset of the configured quantiles.
 
 ### `history_components(...)`
 
@@ -82,9 +91,9 @@ history_components(
 )
 ```
 
-Eğitim geçmişine ait bileşen katkıları ve hata terimlerini döndürür. Parametre
-anlamları `predict()` ile aynıdır ancak varsayılan görünürlük
-`historical_components` yapılandırmasına bağlıdır.
+Returns component contributions, fitted values, and (optionally) residuals for
+the training window. Parameters mirror `predict()`, but default visibility is
+driven by the constructor's `historical_components` setting.
 
 ### `backtest(...)`
 
@@ -102,33 +111,34 @@ backtest(
 )
 ```
 
-* `strategy`: `BACKTEST_STRATEGIES` sabitinde listelenen yeniden eğitim
-  yaklaşımlarından biri (`expanding`, `sliding`, `anchored`).
-* `window`: `sliding` ve `anchored` stratejileri için pencere uzunluğunu
-  belirler.
-* Diğer parametreler `predict()` ile aynı davranışa sahiptir.
+- `strategy`: one of the retraining approaches listed in
+  `optitime.BACKTEST_STRATEGIES` (`"expanding"`, `"sliding"`, `"anchored"`).
+- `window`: sliding/anchored sample size when applicable.
+- Formatting parameters (`include_components`, `component_overrides`,
+  `include_uncertainty`, `quantile_subset`) work identically to `predict()`.
 
-Çıktı veri çerçevesi temel doğruluk ölçütlerini (`mae`, `rmse`, `mape`, `r2`),
-deneme aralığını (`start`, `end`), kullanılan stratejiyi ve eğitim boyutunu
-içerir.
+The returned dataframe includes accuracy metrics (`mae`, `rmse`, `mape`, `r2`),
+the evaluation interval (`start`, `end`), the chosen strategy, and the size of
+the training sample.
 
-### `report() -> Dict[str, object]`
+### `report() -> ForecastReport`
 
-`ForecastReport` nesnesini sözlük olarak döndürür; performans metrikleri,
-komponent güçleri ve OptiScorer tarzı aykırı değer özetlerini içerir.
+Exposes the OptiScorer-style diagnostic report with model metrics, component
+strength estimates, detected changepoints, and outlier summaries. Convert to a
+plain dictionary via `model.report_.to_dict()` if required by downstream tools.
 
-## Veri kümesi yardımcıları
+## Dataset utilities
 
-* `optitime.datasets.available_datasets()` – kayıtlı veri kümesi kimliklerini
-  listeler.
-* `optitime.datasets.dataset_info(name)` – veri kümesi açıklaması, frekans ve
-  satır sayısı gibi meta bilgileri döndürür.
-* `optitime.datasets.load_dataset(name)` – ilgili CSV dosyasını `pandas`
-  veri çerçevesi olarak yükler.
+- `optitime.datasets.available_datasets()` – list the bundled dataset
+  identifiers.
+- `optitime.datasets.dataset_info(name)` – return metadata (description,
+  frequency, start/end).
+- `optitime.datasets.load_dataset(name)` – load the CSV resource as a sorted
+  `pandas.DataFrame`.
 
-## Kamuya açık sabitler
+## Public constants
 
-* `optitime.BACKTEST_STRATEGIES` – desteklenen backtest stratejileri dizisi.
+- `optitime.BACKTEST_STRATEGIES` – tuple of supported backtest strategy names.
 
-Tüm API bileşenleri için kullanım örnekleri `README.md`, `tests/run_sales_example.py`
-ve `tests/run_airlines_visuals.py` dosyalarında da gösterilmiştir.
+Worked examples live in `README.md`, `tests/run_sales_example.py`, and
+`tests/run_airlines_visuals.py` for quick reference.

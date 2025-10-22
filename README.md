@@ -104,21 +104,23 @@ The current catalogue contains:
 | `shampoo_sales` | Monthly shampoo sales in millions of units (1901-1903). | Monthly |
 | `us_acc_deaths` | Monthly accidental deaths in the United States (1973-1978). | Monthly |
 
-## Parametrik kontrol özeti
+## Parameter control summary
 
-- `historical_components` ve `history_components()` ile tarihsel trend, sezonsallık
-  ve residual sütunlarını isteğe bağlı görünür kılın.
-- `predict(include_components=False, include_uncertainty=False)` sayesinde hızlı
-  servisler için yalın çıktı alın.
-- `predict(component_overrides={"seasonality": False})` gibi seçici müdahalelerle
-  belirli bileşenleri kapatın.
-- `backtest(strategy="sliding", window=48)` veya `backtest(strategy="anchored")`
-  çağrılarıyla farklı yeniden eğitim senaryolarını kıyaslayın.
-- Desteklenen stratejilerin tamamı `optitime.BACKTEST_STRATEGIES` sabitinde
-  listelenmiştir.
+- Use the `historical_components` constructor argument and the
+  `history_components()` method to expose or hide historical trend, seasonality,
+  regressor, and residual columns on demand.
+- Call `predict(include_components=False, include_uncertainty=False)` to obtain
+  a lightweight point forecast for low-latency services.
+- Apply selective overrides such as
+  `predict(component_overrides={"seasonality": False})` when only certain
+  contributors should be hidden.
+- Compare retraining schemes with `backtest(strategy="sliding", window=48)` or
+  `backtest(strategy="anchored")`.
+- The `optitime.BACKTEST_STRATEGIES` constant enumerates every supported
+  backtest strategy name.
 
-Detaylı parametre açıklamaları için [`docs/parameters.md`](docs/parameters.md)
-dosyasına göz atın.
+See [`docs/parameters.md`](docs/parameters.md) for a deeper explanation of each
+parameter and how it impacts the model.
 
 ## Local smoke test
 
@@ -135,19 +137,19 @@ The output demonstrates how the OptiScorer-inspired diagnostics surface
 trend, seasonality, residuals, and interval bounds on a realistic retail
 series without any extra setup.
 
-## Görsel senaryo testi
+## Visual scenario walkthrough
 
-OptiWisdom OptiScorer çalışmalarından türetilen Kaggle tabanlı
-`airlines_traffic` veri kümesi üzerinde parametrik karşılaştırmalar yapmak için
-opsiyonel görselleştirme bağımlılığını yükleyin ve aşağıdaki komutu çalıştırın:
+Recreate the OptiWisdom OptiScorer-inspired parameter sweep on the Kaggle-based
+`airlines_traffic` dataset by installing the optional plotting dependency and
+running the helper script:
 
 ```bash
 pip install optitime-prophet[visuals]
 python tests/run_airlines_visuals.py
 ```
 
-Betik, farklı backtest stratejileri ve bileşen yapılandırmaları için tahmin ve
-RMSE grafiklerini `tests/` dizinine kaydeder (`airlines_forecast_*.png`,
+The script writes forecast and RMSE visualisations for each backtest strategy
+and component setting to the `tests/` directory (`airlines_forecast_*.png`,
 `airlines_backtest_*.png`).
 
 ## Feature highlights
@@ -161,9 +163,9 @@ RMSE grafiklerini `tests/` dizinine kaydeder (`airlines_forecast_*.png`,
 - **Quantile intervals**: Forecasts include configurable lower/upper bounds (`interval_width` or explicit `quantiles`) using in-sample dispersion, while dedicated columns such as `yhat_q0.10` and `yhat_q0.90` expose raw quantile estimates for downstream pipelines.
 - **Autoregression & shocks**: Short-term dynamics are captured with configurable AR and MA lags, automatically rolling forward during forecasting.
 - **External signals**: Provide arbitrary regressors during both fit and predict phases to blend business drivers with the statistical core.
-- **Parametrik bileşen kontrolü**: Hem geçmiş hem gelecek analitiklerinde trend,
-  sezonsallık, regressör ve residual sütunlarını çağrı bazında yönetebilir,
-  güven aralıklarını kapatıp açabilirsiniz.
+- **Parameterized component control**: Manage trend, seasonality, regressor, and
+  residual columns for both historical analyses and future forecasts on a
+  per-call basis, including the ability to toggle confidence intervals.
 
 ## Error handling
 
@@ -181,10 +183,10 @@ These exceptions include actionable messages so automated pipelines (including G
 2. Create a source distribution and wheel: `python -m build`.
 3. Upload with `twine upload dist/*` once credentials are configured.
 
-## Belgeler
+## Documentation
 
-- [API özeti](docs/api.md)
-- [Parametre rehberi](docs/parameters.md)
+- [API overview](docs/api.md)
+- [Parameter guide](docs/parameters.md)
 
 ## Development roadmap
 
@@ -225,7 +227,7 @@ OptiProphet is maintained by Şadi Evren Şeker. For enquiries or partnership op
 
 Released under the MIT License.
 
-## Kaynakça
+## References
 
 - Taylor, S. J., & Letham, B. (2018). *Forecasting at scale*. The American Statistician, 72(1), 37-45.
 - Box, G. E. P., Jenkins, G. M., Reinsel, G. C., & Ljung, G. M. (2015). *Time Series Analysis: Forecasting and Control* (5th ed.). Wiley.
