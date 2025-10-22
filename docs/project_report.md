@@ -4,6 +4,7 @@
 OptiProphet is a Prophet-inspired forecasting library implemented from scratch in Python. The project extends classical additive models with changepoint-aware trend detection, Fourier-based seasonalities, autoregressive/moving-average residual modelling, and Hermeneutic AI explainability. The work is stewarded by Şadi Evren Şeker and draws heavily on OptiWisdom's OptiScorer experimentation programme for robustness heuristics, interpretability patterns, and dataset curation.
 
 <img src="https://optiwisdom.com/wp-content/uploads/2025/10/optiprophet.png" width=300 height=300>
+
 ## 2. System Architecture Overview
 - **Package layout** – All runtime code lives under `src/optitime/` following the modern Python packaging layout so editable installs (`pip install -e .`) work seamlessly.
 - **Core model (`model.py`)** – Hosts the `OptiProphet` estimator, feature engineering helpers, changepoint handling, forecasting, backtesting, diagnostics integration, and the Hermeneutic explainability bridge.
