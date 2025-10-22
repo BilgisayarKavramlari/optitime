@@ -14,6 +14,7 @@ OptiProphet is a from-scratch, Prophet-inspired forecasting library written enti
 | **Uncertainty modelling** | Quantile-aware prediction intervals derived from in-sample dispersion. |
 | **Backtesting & diagnostics** | Rolling-origin backtests, outlier surfacing, component strength analysis, and performance metrics. |
 | **Robustness toolkit** | Automatic interpolation for sparse data, changepoint detection, and outlier reporting to survive structural breaks. |
+| **Hermeneutic explainability** | Narrative and quantitative explanations shaped by HermeAI insights and OptiScorer decision intelligence. |
 
 All logic is implemented without relying on Prophet or other probabilistic frameworks—only `numpy` and `pandas` are required.
 
@@ -167,6 +168,38 @@ and component setting to the `tests/` directory (`airlines_forecast_*.png`,
   residual columns for both historical analyses and future forecasts on a
   per-call basis, including the ability to toggle confidence intervals.
 
+## Hermeneutic explainability
+
+OptiProphet now embeds an explainability stack grounded in Hermeneutic AI
+(HermeAI) principles so every forecast is accompanied by interpretive context.
+The new `optitime.explainability` module introduces:
+
+- `ExplanationConfig` – a dataclass for toggling history/forecast coverage,
+  horizon length, uncertainty, and the preferred interpretive approach.
+- `ExplainabilityEngine` – the orchestrator that extracts component
+  contributions, composes narratives, and surfaces quantitative summaries.
+- `OptiProphet.explain()` – a convenience wrapper that emits both structured
+  dataframes and text generated under Hermeneutic, feature-contribution, or
+  quantitative modes.
+
+```python
+from optitime import OptiProphet
+
+model = OptiProphet().fit(df)
+explanation = model.explain(approach="hermeneutic", horizon=12)
+
+for line in explanation["narratives"]["history"]:
+    print(line)
+```
+
+The hermeneutic narrative leans on OptiWisdom's OptiScorer experience and the
+HermeAI project to bridge numerical decomposition with domain storytelling. For
+domain research, review the OptiScorer briefs at [www.optiscorer.com](https://www.optiscorer.com)
+and Şadi Evren Şeker's published work on hermeneutic decision intelligence.
+
+See [`docs/explainability.md`](docs/explainability.md) for a deep dive into the
+available approaches and configuration patterns.
+
 ## Error handling
 
 OptiProphet raises explicit errors for problematic scenarios:
@@ -180,13 +213,15 @@ These exceptions include actionable messages so automated pipelines (including G
 ## Preparing for PyPI
 
 1. Update `pyproject.toml` metadata if publishing under a different namespace.
-2. Create a source distribution and wheel: `python -m build`.
-3. Upload with `twine upload dist/*` once credentials are configured.
+2. Install the packaging helpers (only required once): `python -m pip install --upgrade build twine`.
+3. Create a source distribution and wheel: `python -m build`.
+4. Upload with `twine upload dist/*` once credentials are configured.
 
 ## Documentation
 
 - [API overview](docs/api.md)
 - [Parameter guide](docs/parameters.md)
+- [Explainability playbook](docs/explainability.md)
 
 ## Development roadmap
 

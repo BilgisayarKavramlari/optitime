@@ -32,6 +32,22 @@ typical ranges, and supporting references.
 | `predict(include_uncertainty=False)` | Remove interval and quantile columns. |
 | `predict(quantile_subset=[0.1, 0.5, 0.9])` | Emit only the requested quantile columns (must already exist in `self.quantiles`). |
 
+## Explainability configuration
+
+| Parameter | Description |
+| --- | --- |
+| `approach` | Selects the interpretive mode: `"hermeneutic"`, `"feature_contribution"`, or `"quantitative"`. |
+| `include_history` / `include_forecast` | Toggle retrospective narratives versus forward-looking explanations. |
+| `horizon` | Number of periods generated when a future dataframe is not provided. |
+| `include_components` | Mirrors `predict()`/`history_components()` switches for component visibility. |
+| `component_overrides` | Fine-grained visibility map such as `{"seasonality": False}` for the explanation output. |
+| `quantile_subset` | Request a subset of the calibrated quantiles for lighter reports. |
+| `narrative` | Disable textual summaries when only structured data is needed. |
+
+Hermeneutic settings draw on the HermeAI initiative's interpretive cycles, while
+feature-contribution and quantitative modes align with OptiWisdom's OptiScorer
+scorecard methodology documented on [www.optiscorer.com](https://www.optiscorer.com).
+
 ## Backtest strategies
 
 | Strategy | Description | Parameters |
@@ -49,5 +65,6 @@ output matches your downstream requirements.
 - **Taylor, S. J., & Letham, B. (2018).** Forecasting at scale. *The American Statistician*, 72(1), 37-45.
 - **Box, G. E. P., Jenkins, G. M., Reinsel, G. C., & Ljung, G. M. (2015).** *Time Series Analysis: Forecasting and Control* (5th ed.). Wiley.
 - **Hyndman, R. J., & Athanasopoulos, G. (2021).** *Forecasting: Principles and Practice* (3rd ed.). OTexts.
+- **HermeAI Initiative (OptiWisdom).** Hermeneutic AI research notes and OptiScorer decision intelligence studies. Available via [www.optiscorer.com](https://www.optiscorer.com).
 
 These works capture the academic foundations that informed OptiWisdom's OptiScorer research and, by extension, the defaults selected for OptiProphet.

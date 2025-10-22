@@ -39,7 +39,10 @@ def main() -> None:
     forecast = model.predict(future, include_history=False)
 
     print("=== Forecast (next 12 months) ===")
-    print(forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].head())
+    forecast_columns = [
+        col for col in ["ds", "yhat", "yhat_lower", "yhat_upper"] if col in forecast.columns
+    ]
+    print(forecast[forecast_columns].head())
 
     lean = model.predict(
         future,
@@ -60,6 +63,17 @@ def main() -> None:
     backtest = model.backtest(horizon=12, step=3, strategy="sliding", window=18)
     print("\n=== Backtest summary (sliding window, first 5 rows) ===")
     print(backtest.head())
+
+    explanation = model.explain(horizon=12, approach="hermeneutic")
+    print("\n=== Hermeneutic explanation (history narrative excerpt) ===")
+    history_narrative = explanation.get("narratives", {}).get("history", [])
+    for line in history_narrative[:3]:
+        print(f"  {line}")
+
+    print("\n=== Forecast explanation overview ===")
+    forecast_narrative = explanation.get("narratives", {}).get("forecast", [])
+    for line in forecast_narrative[:3]:
+        print(f"  {line}")
 
 
 if __name__ == "__main__":

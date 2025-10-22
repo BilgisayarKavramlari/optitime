@@ -65,6 +65,18 @@ class DatasetIntegrationTest(unittest.TestCase):
                 self.assertFalse(backtest_results.empty)
                 self.assertTrue((backtest_results["strategy"] == "sliding").all())
 
+                explanation = model.explain(
+                    include_history=True,
+                    include_forecast=True,
+                    horizon=4,
+                    approach="feature_contribution",
+                )
+                self.assertIn("data", explanation)
+                self.assertIn("history", explanation["data"])
+                self.assertIn("forecast", explanation["data"])
+                self.assertIn("approach", explanation)
+                self.assertEqual(explanation["approach"], "feature_contribution")
+
     def test_airlines_traffic_specific_dataset(self) -> None:
         df = load_dataset("airlines_traffic")
         self.assertGreaterEqual(len(df), 100)
@@ -99,6 +111,17 @@ class DatasetIntegrationTest(unittest.TestCase):
         )
         self.assertFalse(backtest_results.empty)
         self.assertTrue((backtest_results["strategy"] == "anchored").all())
+
+        explanation = model.explain(
+            include_history=True,
+            include_forecast=True,
+            horizon=6,
+            approach="hermeneutic",
+        )
+        self.assertIn("narratives", explanation)
+        self.assertIn("history", explanation["narratives"])
+        self.assertIsInstance(explanation["narratives"]["history"], list)
+        self.assertIn("forecast", explanation["data"])
 
 
 if __name__ == "__main__":

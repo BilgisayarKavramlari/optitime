@@ -8,6 +8,11 @@ from typing import Dict, Iterable, List, Mapping, Optional
 import numpy as np
 import pandas as pd
 
+from .explainability import (
+    AVAILABLE_EXPLANATION_APPROACHES,
+    ExplanationConfig,
+    ExplainabilityEngine,
+)
 from .diagnostics import ForecastReport, compute_metrics, component_strengths, detect_outliers
 from .exceptions import DataValidationError, ForecastQualityError, ModelNotFitError
 from .utils import (
@@ -508,6 +513,31 @@ class OptiProphet:
         if component_flags.get("residual", True):
             df["residual"] = self._residuals.to_numpy()
         return df
+
+    def explain(
+        self,
+        config: Optional[ExplanationConfig] = None,
+        **kwargs: object,
+    ) -> Dict[str, object]:
+        """Generate explainability artefacts for historical and forecasted values."""
+
+        if not self.fitted_:
+            raise ModelNotFitError("Model must be fitted before requesting explanations.")
+
+        if config is not None and kwargs:
+            raise ValueError("Pass either an ExplanationConfig instance or keyword arguments, not both.")
+
+        if config is None:
+            config = ExplanationConfig(**kwargs)  # type: ignore[arg-type]
+
+        engine = ExplainabilityEngine(self)
+        return engine.generate(config)
+
+    @staticmethod
+    def available_explanation_approaches() -> tuple[str, ...]:
+        """Return the supported explanation approaches."""
+
+        return AVAILABLE_EXPLANATION_APPROACHES
 
     def report(self) -> Dict[str, object]:
         """Return the diagnostic report as a dictionary."""

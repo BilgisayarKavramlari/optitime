@@ -1,6 +1,11 @@
 """Public interface for the OptiProphet library."""
 
 from .model import BACKTEST_STRATEGIES, OptiProphet
+from .explainability import (
+    AVAILABLE_EXPLANATION_APPROACHES,
+    ExplanationConfig,
+    ExplainabilityEngine,
+)
 from .exceptions import (
     DataValidationError,
     ForecastQualityError,
@@ -20,4 +25,7 @@ __all__ = [
     "available_datasets",
     "dataset_info",
     "load_dataset",
+    "AVAILABLE_EXPLANATION_APPROACHES",
+    "ExplanationConfig",
+    "ExplainabilityEngine",
 ]
