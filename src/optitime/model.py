@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Mapping, Optional
 
 import numpy as np
 import pandas as pd
@@ -44,6 +44,17 @@ DEFAULT_SEASONALITIES = {
     "daily": {"period": 1.0, "order": 3},
 }
 
+DEFAULT_COMPONENT_FLAGS = {
+    "trend": True,
+    "seasonality": True,
+    "regressors": True,
+    "autoregressive": True,
+    "moving_average": True,
+    "residual": True,
+}
+
+BACKTEST_STRATEGIES = ("expanding", "sliding", "anchored")
+
 
 class OptiProphet:
     """A robust, feature-rich time series forecasting model inspired by Prophet."""
@@ -62,6 +73,10 @@ class OptiProphet:
         min_history: int = 30,
         min_success_r2: float = 0.1,
         max_mape: Optional[float] = 35.0,
+        historical_components: Optional[Mapping[str, bool]] = None,
+        forecast_components: bool = True,
+        default_backtest_strategy: str = "expanding",
+        default_backtest_window: Optional[int] = None,
     ) -> None:
         self.n_changepoints = n_changepoints
         self.seasonality_mode = seasonality_mode
@@ -77,6 +92,22 @@ class OptiProphet:
         self.min_history = int(min_history)
         self.min_success_r2 = float(min_success_r2)
         self.max_mape = float(max_mape) if max_mape is not None else None
+        self.default_backtest_strategy = default_backtest_strategy.lower()
+        self.default_backtest_window = default_backtest_window
+
+        self._historical_component_flags = DEFAULT_COMPONENT_FLAGS.copy()
+        if historical_components:
+            for key, value in historical_components.items():
+                if key not in self._historical_component_flags:
+                    raise ValueError(f"Unknown historical component '{key}'.")
+                self._historical_component_flags[key] = bool(value)
+        self.forecast_components = bool(forecast_components)
+
+        if self.default_backtest_strategy not in BACKTEST_STRATEGIES:
+            raise ValueError(
+                f"Unsupported default_backtest_strategy '{self.default_backtest_strategy}'. "
+                f"Choose from {BACKTEST_STRATEGIES}."
+            )
 
         self.fitted_: bool = False
         self.coef_: Optional[np.ndarray] = None
@@ -235,6 +266,10 @@ class OptiProphet:
         *,
         include_history: bool = True,
         backcast: bool = False,
+        include_components: Optional[bool] = None,
+        component_overrides: Optional[Mapping[str, bool]] = None,
+        include_uncertainty: bool = True,
+        quantile_subset: Optional[Iterable[float]] = None,
     ) -> pd.DataFrame:
         """Generate forecasts for future (and optionally historical) timestamps."""
 
@@ -260,13 +295,51 @@ class OptiProphet:
                 f"Future dataframe is missing regressors: {', '.join(sorted(missing))}"
             )
 
+        component_flags = self._resolve_component_flags(
+            base=DEFAULT_COMPONENT_FLAGS,
+            master_switch=self.forecast_components,
+        )
+        if include_components is not None:
+            component_flags = self._resolve_component_flags(
+                base=component_flags,
+                master_switch=include_components,
+            )
+        if component_overrides:
+            component_flags = self._resolve_component_flags(
+                base=component_flags,
+                overrides=component_overrides,
+            )
+
+        if quantile_subset is not None:
+            quantiles = []
+            for q in quantile_subset:
+                q_float = float(q)
+                if not any(abs(q_float - existing) < 1e-9 for existing in self.quantiles):
+                    raise ValueError(
+                        f"Quantile {q_float} is not configured. Available quantiles: {self.quantiles}"
+                    )
+                quantiles.append(q_float)
+            quantiles = sorted(quantiles)
+        else:
+            quantiles = list(self.quantiles)
+
         if include_history or backcast:
-            base_history = self._compose_history_predictions(include_backcast=backcast)
+            base_history = self._compose_history_predictions(
+                include_backcast=backcast,
+                component_flags=component_flags,
+                include_uncertainty=include_uncertainty,
+                quantiles=quantiles,
+            )
         else:
             base_history = pd.DataFrame()
 
         horizon_df = future_df.loc[future_df.index.difference(self.history_.index)]
-        predictions = self._forecast_horizon(horizon_df)
+        predictions = self._forecast_horizon(
+            horizon_df,
+            component_flags=component_flags,
+            include_uncertainty=include_uncertainty,
+            quantiles=quantiles,
+        )
 
         result_frames = []
         if include_history:
@@ -281,8 +354,19 @@ class OptiProphet:
     # ------------------------------------------------------------------
     # Backtesting
     # ------------------------------------------------------------------
-    def backtest(self, horizon: int, step: int = 1) -> pd.DataFrame:
-        """Perform a rolling-origin backtest returning forecast accuracy."""
+    def backtest(
+        self,
+        horizon: int,
+        step: int = 1,
+        *,
+        strategy: Optional[str] = None,
+        window: Optional[int] = None,
+        include_components: Optional[bool] = None,
+        component_overrides: Optional[Mapping[str, bool]] = None,
+        include_uncertainty: bool = True,
+        quantile_subset: Optional[Iterable[float]] = None,
+    ) -> pd.DataFrame:
+        """Perform configurable backtesting with multiple re-training strategies."""
 
         if not self.fitted_ or self.history_ is None:
             raise ModelNotFitError("Model must be fitted before running backtest().")
@@ -291,29 +375,84 @@ class OptiProphet:
         if step <= 0:
             raise ValueError("Step must be positive.")
 
+        strategy_name = (strategy or self.default_backtest_strategy).lower()
+        valid_strategies = set(BACKTEST_STRATEGIES)
+        if strategy_name not in valid_strategies:
+            raise ValueError(
+                f"Unsupported backtest strategy '{strategy_name}'. Choose from {sorted(valid_strategies)}."
+            )
+
+        if quantile_subset is not None:
+            quantiles = []
+            for q in quantile_subset:
+                q_float = float(q)
+                if not any(abs(q_float - existing) < 1e-9 for existing in self.quantiles):
+                    raise ValueError(
+                        f"Quantile {q_float} is not configured. Available quantiles: {self.quantiles}"
+                    )
+                quantiles.append(q_float)
+            quantiles = sorted(quantiles)
+        else:
+            quantiles = list(self.quantiles)
+
         df = self.history_.reset_index().rename(columns={"index": "ds"})
         results = []
         for start in range(self.min_history, len(df) - horizon, step):
-            train_slice = df.iloc[: start + 1]
+            if strategy_name == "expanding":
+                train_slice = df.iloc[: start + 1]
+            elif strategy_name == "sliding":
+                window_size = window or self.default_backtest_window or self.min_history
+                if window_size < self.min_history:
+                    window_size = self.min_history
+                start_idx = max(0, start + 1 - window_size)
+                train_slice = df.iloc[start_idx : start + 1]
+            else:  # anchored
+                window_size = window or self.default_backtest_window or self.min_history
+                window_size = max(window_size, self.min_history)
+                train_slice = df.iloc[:window_size]
+                if len(train_slice) < window_size:
+                    continue
+
             test_slice = df.iloc[start + 1 : start + 1 + horizon]
             model = self._clone()
             try:
                 model.fit(train_slice)
             except ForecastQualityError:
                 continue
-            forecast = model.predict(test_slice[["ds"]], include_history=False)
+            forecast = model.predict(
+                test_slice[["ds"]],
+                include_history=False,
+                include_components=include_components,
+                component_overrides=component_overrides,
+                include_uncertainty=include_uncertainty,
+                quantile_subset=quantiles,
+            )
             merged = test_slice.merge(forecast, on="ds", how="left")
             if merged["yhat"].isna().any():
                 continue
             metrics = compute_metrics(merged["y"].to_numpy(), merged["yhat"].to_numpy())
-            metrics.update({"start": merged["ds"].min(), "end": merged["ds"].max()})
+            metrics.update(
+                {
+                    "start": merged["ds"].min(),
+                    "end": merged["ds"].max(),
+                    "strategy": strategy_name,
+                    "train_size": len(train_slice),
+                }
+            )
             results.append(metrics)
         return pd.DataFrame(results)
 
     # ------------------------------------------------------------------
     # Analysis utilities
     # ------------------------------------------------------------------
-    def history_components(self) -> pd.DataFrame:
+    def history_components(
+        self,
+        *,
+        include_components: Optional[bool] = None,
+        component_overrides: Optional[Mapping[str, bool]] = None,
+        include_uncertainty: bool = True,
+        quantile_subset: Optional[Iterable[float]] = None,
+    ) -> pd.DataFrame:
         """Return component decomposition for the training data."""
 
         if not self.fitted_ or self._fitted_values is None or self._residuals is None:
@@ -322,14 +461,50 @@ class OptiProphet:
         if self._training_index is None:
             raise ModelNotFitError("Training index is missing; refit the model.")
 
+        component_flags = self._resolve_component_flags(
+            base=self._historical_component_flags,
+        )
+        if include_components is not None:
+            component_flags = self._resolve_component_flags(
+                base=component_flags,
+                master_switch=include_components,
+            )
+        if component_overrides:
+            component_flags = self._resolve_component_flags(
+                base=component_flags,
+                overrides=component_overrides,
+            )
+
+        if quantile_subset is not None:
+            quantiles = []
+            for q in quantile_subset:
+                q_float = float(q)
+                if not any(abs(q_float - existing) < 1e-9 for existing in self.quantiles):
+                    raise ValueError(
+                        f"Quantile {q_float} is not configured. Available quantiles: {self.quantiles}"
+                    )
+                quantiles.append(q_float)
+            quantiles = sorted(quantiles)
+        else:
+            quantiles = list(self.quantiles)
+
         components = self._compute_component_contributions(
             index=self._training_index, feature_matrix=self._fitted_feature_matrix()
         )
         df = pd.DataFrame({"ds": self._training_index})
         for key, values in components.items():
-            df[key] = values
+            if component_flags.get(key, True):
+                df[key] = values
         df["yhat"] = self._fitted_values.to_numpy()
-        df["residual"] = self._residuals.to_numpy()
+        if include_uncertainty:
+            quantile_columns = self._quantile_forecasts(df["yhat"].to_numpy(), quantiles=quantiles)
+            for label, values in quantile_columns.items():
+                df[label] = values
+            lower, upper = self._confidence_intervals(df["yhat"].to_numpy())
+            df["yhat_lower"] = lower
+            df["yhat_upper"] = upper
+        if component_flags.get("residual", True):
+            df["residual"] = self._residuals.to_numpy()
         return df
 
     def report(self) -> Dict[str, object]:
@@ -359,8 +534,29 @@ class OptiProphet:
             min_history=self.min_history,
             min_success_r2=self.min_success_r2,
             max_mape=self.max_mape,
+            historical_components=self._historical_component_flags,
+            forecast_components=self.forecast_components,
+            default_backtest_strategy=self.default_backtest_strategy,
+            default_backtest_window=self.default_backtest_window,
         )
         return clone
+
+    def _resolve_component_flags(
+        self,
+        *,
+        base: Mapping[str, bool],
+        overrides: Optional[Mapping[str, bool]] = None,
+        master_switch: Optional[bool] = None,
+    ) -> Dict[str, bool]:
+        flags = {key: bool(value) for key, value in base.items()}
+        if master_switch is not None:
+            flags = {key: bool(master_switch) and value for key, value in flags.items()}
+        if overrides:
+            for key, value in overrides.items():
+                if key not in flags:
+                    raise ValueError(f"Unknown component '{key}'.")
+                flags[key] = bool(value)
+        return flags
 
     def _compute_time_normalised(self, index: pd.Index) -> np.ndarray:
         if self._time_start is None or self._time_scale is None:
@@ -476,7 +672,14 @@ class OptiProphet:
             comments.append("No prominent outliers detected.")
         return ForecastReport(metrics=metrics, component_strength=strengths, changepoints=changepoint_times, outliers=outliers, comments=comments)
 
-    def _compose_history_predictions(self, include_backcast: bool) -> pd.DataFrame:
+    def _compose_history_predictions(
+        self,
+        include_backcast: bool,
+        *,
+        component_flags: Mapping[str, bool],
+        include_uncertainty: bool,
+        quantiles: Iterable[float],
+    ) -> pd.DataFrame:
         history_index = self._training_index
         if history_index is None or self._fitted_values is None or self._residuals is None:
             raise ModelNotFitError("Model training artefacts missing.")
@@ -486,19 +689,31 @@ class OptiProphet:
         )
         df = pd.DataFrame({"ds": history_index})
         for name, values in contributions.items():
-            df[name] = values
+            if component_flags.get(name, True):
+                df[name] = values
         fitted_values = self._fitted_values.to_numpy()
         df["yhat"] = fitted_values
-        quantile_columns = self._quantile_forecasts(fitted_values)
-        for label, values in quantile_columns.items():
-            df[label] = values
-        df["yhat_lower"], df["yhat_upper"] = self._confidence_intervals(fitted_values)
-        df["residual"] = self._residuals.to_numpy()
+        if include_uncertainty:
+            quantile_columns = self._quantile_forecasts(fitted_values, quantiles=quantiles)
+            for label, values in quantile_columns.items():
+                df[label] = values
+            lower, upper = self._confidence_intervals(fitted_values)
+            df["yhat_lower"] = lower
+            df["yhat_upper"] = upper
+        if component_flags.get("residual", True):
+            df["residual"] = self._residuals.to_numpy()
         if include_backcast and self.history_ is not None:
             df["y"] = self.history_.loc[history_index, "y"].to_numpy()
         return df
 
-    def _forecast_horizon(self, future: pd.DataFrame) -> pd.DataFrame:
+    def _forecast_horizon(
+        self,
+        future: pd.DataFrame,
+        *,
+        component_flags: Mapping[str, bool],
+        include_uncertainty: bool,
+        quantiles: Iterable[float],
+    ) -> pd.DataFrame:
         if future.empty:
             return pd.DataFrame(columns=["ds", "yhat", "yhat_lower", "yhat_upper"])
 
@@ -535,17 +750,14 @@ class OptiProphet:
                 history_residuals,
             )
             yhat = float(np.dot(feature_vector, coeffs))
-            predictions.append(
-                {
-                    "ds": timestamp,
-                    "yhat": yhat,
-                    "trend": component_values.get("trend", 0.0),
-                    "seasonality": component_values.get("seasonality", 0.0),
-                    "regressors": component_values.get("regressors", 0.0),
-                    "autoregressive": component_values.get("autoregressive", 0.0),
-                    "moving_average": component_values.get("moving_average", 0.0),
-                }
-            )
+            record = {
+                "ds": timestamp,
+                "yhat": yhat,
+            }
+            for key in ("trend", "seasonality", "regressors", "autoregressive", "moving_average"):
+                if component_flags.get(key, True):
+                    record[key] = component_values.get(key, 0.0)
+            predictions.append(record)
             for key, value in component_values.items():
                 contributions_history.setdefault(key, []).append(value)
             history_values.append(yhat)
@@ -559,13 +771,17 @@ class OptiProphet:
                 history_residuals.pop(0)
 
         predictions_df = pd.DataFrame(predictions)
-        predictions_df["yhat_lower"], predictions_df["yhat_upper"] = self._confidence_intervals(
-            predictions_df["yhat"].to_numpy()
-        )
-        quantile_columns = self._quantile_forecasts(predictions_df["yhat"].to_numpy())
-        for label, values in quantile_columns.items():
-            predictions_df[label] = values
-        predictions_df["residual"] = np.nan
+        if include_uncertainty and not predictions_df.empty:
+            lower, upper = self._confidence_intervals(predictions_df["yhat"].to_numpy())
+            predictions_df["yhat_lower"] = lower
+            predictions_df["yhat_upper"] = upper
+            quantile_columns = self._quantile_forecasts(
+                predictions_df["yhat"].to_numpy(), quantiles=quantiles
+            )
+            for label, values in quantile_columns.items():
+                predictions_df[label] = values
+        if component_flags.get("residual", True):
+            predictions_df["residual"] = np.nan
         return predictions_df
 
     def _feature_vector_for_timestamp(
@@ -650,9 +866,15 @@ class OptiProphet:
         upper = yhat + high_adj + spread
         return lower, upper
 
-    def _quantile_forecasts(self, yhat: np.ndarray) -> Dict[str, np.ndarray]:
+    def _quantile_forecasts(
+        self,
+        yhat: np.ndarray,
+        *,
+        quantiles: Optional[Iterable[float]] = None,
+    ) -> Dict[str, np.ndarray]:
         quantile_columns: Dict[str, np.ndarray] = {}
-        for q in self.quantiles:
+        selected = self.quantiles if quantiles is None else list(quantiles)
+        for q in selected:
             label = f"yhat_q{q:.2f}"
             adjustment = self._residual_quantiles.get(q, 0.0)
             quantile_columns[label] = yhat + adjustment

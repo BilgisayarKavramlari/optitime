@@ -29,6 +29,11 @@ Homepage = "https://github.com/bilgisayarkavramlari/optitime"
 Documentation = "https://github.com/bilgisayarkavramlari/optitime"
 Issues = "https://github.com/bilgisayarkavramlari/optitime/issues"
 
+[project.optional-dependencies]
+visuals = [
+  "matplotlib>=3.6",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

@@ -1,6 +1,6 @@
 """Public interface for the OptiProphet library."""
 
-from .model import OptiProphet
+from .model import BACKTEST_STRATEGIES, OptiProphet
 from .exceptions import (
     DataValidationError,
     ForecastQualityError,
@@ -11,6 +11,7 @@ from .datasets import Dataset, available_datasets, dataset_info, load_dataset
 
 __all__ = [
     "OptiProphet",
+    "BACKTEST_STRATEGIES",
     "OptiProphetError",
     "DataValidationError",
     "ForecastQualityError",

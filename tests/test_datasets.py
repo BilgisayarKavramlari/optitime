@@ -32,19 +32,38 @@ class DatasetIntegrationTest(unittest.TestCase):
                 model.fit(df)
 
                 future = model.make_future_dataframe(periods=12, include_history=False)
-                forecast = model.predict(future, include_history=False)
+                forecast = model.predict(
+                    future,
+                    include_history=False,
+                    include_components=False,
+                    include_uncertainty=False,
+                )
                 self.assertEqual(len(forecast), 12)
-                for column in ("yhat", "yhat_lower", "yhat_upper"):
-                    self.assertIn(column, forecast.columns)
+                self.assertIn("yhat", forecast.columns)
+                self.assertNotIn("trend", forecast.columns)
+                self.assertNotIn("yhat_lower", forecast.columns)
+                self.assertNotIn("yhat_upper", forecast.columns)
 
-                components = model.history_components()
-                for column in ("trend", "seasonality", "yhat", "residual"):
-                    self.assertIn(column, components.columns)
+                components = model.history_components(
+                    component_overrides={"seasonality": False},
+                    include_uncertainty=False,
+                )
+                self.assertIn("trend", components.columns)
+                self.assertNotIn("seasonality", components.columns)
+                self.assertNotIn("yhat_lower", components.columns)
+                self.assertIn("residual", components.columns)
 
                 horizon = max(3, min(12, len(df) // 4))
                 step = max(1, horizon // 3)
-                backtest_results = model.backtest(horizon=horizon, step=step)
+                backtest_results = model.backtest(
+                    horizon=horizon,
+                    step=step,
+                    strategy="sliding",
+                    include_components=False,
+                    include_uncertainty=False,
+                )
                 self.assertFalse(backtest_results.empty)
+                self.assertTrue((backtest_results["strategy"] == "sliding").all())
 
     def test_airlines_traffic_specific_dataset(self) -> None:
         df = load_dataset("airlines_traffic")
@@ -62,12 +81,24 @@ class DatasetIntegrationTest(unittest.TestCase):
         )
 
         model.fit(df)
-        components = model.history_components()
+        components = model.history_components(
+            include_components=True,
+            quantile_subset=[0.9],
+        )
         self.assertIn("trend", components.columns)
         self.assertIn("seasonality", components.columns)
+        self.assertIn("yhat_q0.90", components.columns)
+        self.assertNotIn("yhat_q0.10", components.columns)
 
-        backtest_results = model.backtest(horizon=12, step=3)
+        backtest_results = model.backtest(
+            horizon=12,
+            step=3,
+            strategy="anchored",
+            window=72,
+            quantile_subset=[0.1],
+        )
         self.assertFalse(backtest_results.empty)
+        self.assertTrue((backtest_results["strategy"] == "anchored").all())
 
 
 if __name__ == "__main__":

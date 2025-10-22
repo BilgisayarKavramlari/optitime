@@ -61,12 +61,20 @@ print(forecast.tail())
 # The returned frame includes component contributions plus quantile columns
 # (e.g. `yhat_q0.10`, `yhat_q0.90`) alongside `yhat_lower`/`yhat_upper` bounds.
 
+# Disable component columns and intervals when you just need point forecasts
+lean_forecast = model.predict(
+    future,
+    include_components=False,
+    include_uncertainty=False,
+)
+print(lean_forecast.tail())
+
 # Inspect decomposition of the training history
 components = model.history_components()
 print(components.head())
 
 # Evaluate rolling-origin backtest
-cv = model.backtest(horizon=14, step=7)
+cv = model.backtest(horizon=14, step=7, strategy="sliding", window=36)
 print(cv.describe())
 
 # Fetch detailed diagnostics & quality report
@@ -96,17 +104,66 @@ The current catalogue contains:
 | `shampoo_sales` | Monthly shampoo sales in millions of units (1901-1903). | Monthly |
 | `us_acc_deaths` | Monthly accidental deaths in the United States (1973-1978). | Monthly |
 
+## Parametrik kontrol özeti
+
+- `historical_components` ve `history_components()` ile tarihsel trend, sezonsallık
+  ve residual sütunlarını isteğe bağlı görünür kılın.
+- `predict(include_components=False, include_uncertainty=False)` sayesinde hızlı
+  servisler için yalın çıktı alın.
+- `predict(component_overrides={"seasonality": False})` gibi seçici müdahalelerle
+  belirli bileşenleri kapatın.
+- `backtest(strategy="sliding", window=48)` veya `backtest(strategy="anchored")`
+  çağrılarıyla farklı yeniden eğitim senaryolarını kıyaslayın.
+- Desteklenen stratejilerin tamamı `optitime.BACKTEST_STRATEGIES` sabitinde
+  listelenmiştir.
+
+Detaylı parametre açıklamaları için [`docs/parameters.md`](docs/parameters.md)
+dosyasına göz atın.
+
+## Local smoke test
+
+After installing the project you can immediately verify everything is
+working by running the bundled sales walkthrough. It loads
+`tests/sales.csv`, trains an `OptiProphet` instance, and prints forecasts,
+component decompositions, and a rolling backtest summary:
+
+```bash
+python tests/run_sales_example.py
+```
+
+The output demonstrates how the OptiScorer-inspired diagnostics surface
+trend, seasonality, residuals, and interval bounds on a realistic retail
+series without any extra setup.
+
+## Görsel senaryo testi
+
+OptiWisdom OptiScorer çalışmalarından türetilen Kaggle tabanlı
+`airlines_traffic` veri kümesi üzerinde parametrik karşılaştırmalar yapmak için
+opsiyonel görselleştirme bağımlılığını yükleyin ve aşağıdaki komutu çalıştırın:
+
+```bash
+pip install optitime-prophet[visuals]
+python tests/run_airlines_visuals.py
+```
+
+Betik, farklı backtest stratejileri ve bileşen yapılandırmaları için tahmin ve
+RMSE grafiklerini `tests/` dizinine kaydeder (`airlines_forecast_*.png`,
+`airlines_backtest_*.png`).
+
 ## Feature highlights
 
 - **Bundled benchmarks**: Access classic datasets such as AirPassengers, Shampoo Sales, and US Accidental Deaths via
   `optitime.load_dataset()` for tutorials, demos, and regression testing.
 - **Bidirectional insight**: `history_components()` exposes historical trend, seasonality, residual, and regressor effects, while `predict()` projects the same structure into the future.
-- **Backtest ready**: `backtest()` re-fits the model on expanding windows to quantify generalisation metrics (MAE, RMSE, MAPE, R²) on rolling horizons.
+- **Backtest ready**: `backtest()` re-fits the model with configurable strategies (expanding, sliding, anchored) to quantify generalisation metrics (MAE, RMSE, MAPE, R²) on rolling horizons.
 - **Error-aware**: Empty frames, missing columns, low sample counts, or under-performing fits surface as descriptive exceptions such as `DataValidationError` or `ForecastQualityError`.
 - **Structural resilience**: The changepoint detector uses rolling z-scores on second derivatives to adapt to trend shifts. Large residual spikes are flagged as outliers in the diagnostic report.
 - **Quantile intervals**: Forecasts include configurable lower/upper bounds (`interval_width` or explicit `quantiles`) using in-sample dispersion, while dedicated columns such as `yhat_q0.10` and `yhat_q0.90` expose raw quantile estimates for downstream pipelines.
 - **Autoregression & shocks**: Short-term dynamics are captured with configurable AR and MA lags, automatically rolling forward during forecasting.
 - **External signals**: Provide arbitrary regressors during both fit and predict phases to blend business drivers with the statistical core.
+- **Parametrik bileşen kontrolü**: Hem geçmiş hem gelecek analitiklerinde trend,
+  sezonsallık, regressör ve residual sütunlarını çağrı bazında yönetebilir,
+  güven aralıklarını kapatıp açabilirsiniz.
 
 ## Error handling
 
@@ -123,6 +180,11 @@ These exceptions include actionable messages so automated pipelines (including G
 1. Update `pyproject.toml` metadata if publishing under a different namespace.
 2. Create a source distribution and wheel: `python -m build`.
 3. Upload with `twine upload dist/*` once credentials are configured.
+
+## Belgeler
+
+- [API özeti](docs/api.md)
+- [Parametre rehberi](docs/parameters.md)
 
 ## Development roadmap
 
@@ -162,3 +224,9 @@ OptiProphet is maintained by Şadi Evren Şeker. For enquiries or partnership op
 ## License
 
 Released under the MIT License.
+
+## Kaynakça
+
+- Taylor, S. J., & Letham, B. (2018). *Forecasting at scale*. The American Statistician, 72(1), 37-45.
+- Box, G. E. P., Jenkins, G. M., Reinsel, G. C., & Ljung, G. M. (2015). *Time Series Analysis: Forecasting and Control* (5th ed.). Wiley.
+- Hyndman, R. J., & Athanasopoulos, G. (2021). *Forecasting: Principles and Practice* (3rd ed.). OTexts.
