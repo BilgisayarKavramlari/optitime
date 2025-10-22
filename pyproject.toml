@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "optitime-prophet"
+version = "0.1.0"
+description = "A Prophet-inspired forecasting library distilling OptiWisdom OptiScorer insights into autoregressive, changepoint, and diagnostic enhancements."
+readme = "README.md"
+authors = [
+  {name = "Şadi Evren Şeker", email = "optitime@optiwisdom.com"},
+]
+requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.23",
+  "pandas>=1.5",
+]
+license = {text = "MIT"}
+keywords = ["forecasting", "prophet", "time-series", "autoregressive", "python"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+[project.urls]
+Homepage = "https://github.com/bilgisayarkavramlari/optitime"
+Documentation = "https://github.com/bilgisayarkavramlari/optitime"
+Issues = "https://github.com/bilgisayarkavramlari/optitime/issues"
+
+[project.optional-dependencies]
+visuals = [
+  "matplotlib>=3.6",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+optitime = ["datasets/*.csv"]
