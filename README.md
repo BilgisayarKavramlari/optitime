@@ -71,8 +71,32 @@ print(cv.describe())
 print(model.report())
 ```
 
+## Bundled datasets
+
+OptiProphet ships with a handful of classic forecasting benchmarks so you can experiment without hunting for data files. Use
+`optitime.available_datasets()` to discover what is included and `optitime.load_dataset()` to load a `pandas.DataFrame` that is
+ready for modelling.
+
+```python
+from optitime import load_dataset, available_datasets
+
+print(available_datasets())
+air = load_dataset("air_passengers")
+print(air.head())
+```
+
+The current catalogue contains:
+
+| Name | Description | Frequency |
+| --- | --- | --- |
+| `air_passengers` | Monthly totals of international airline passengers (1949-1960). | Monthly |
+| `shampoo_sales` | Monthly shampoo sales in millions of units (1901-1903). | Monthly |
+| `us_acc_deaths` | Monthly accidental deaths in the United States (1973-1978). | Monthly |
+
 ## Feature highlights
 
+- **Bundled benchmarks**: Access classic datasets such as AirPassengers, Shampoo Sales, and US Accidental Deaths via
+  `optitime.load_dataset()` for tutorials, demos, and regression testing.
 - **Bidirectional insight**: `history_components()` exposes historical trend, seasonality, residual, and regressor effects, while `predict()` projects the same structure into the future.
 - **Backtest ready**: `backtest()` re-fits the model on expanding windows to quantify generalisation metrics (MAE, RMSE, MAPE, R²) on rolling horizons.
 - **Error-aware**: Empty frames, missing columns, low sample counts, or under-performing fits surface as descriptive exceptions such as `DataValidationError` or `ForecastQualityError`.

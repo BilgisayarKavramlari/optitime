@@ -7,6 +7,7 @@ from .exceptions import (
     ModelNotFitError,
     OptiProphetError,
 )
+from .datasets import Dataset, available_datasets, dataset_info, load_dataset
 
 __all__ = [
     "OptiProphet",
@@ -14,4 +15,8 @@ __all__ = [
     "DataValidationError",
     "ForecastQualityError",
     "ModelNotFitError",
+    "Dataset",
+    "available_datasets",
+    "dataset_info",
+    "load_dataset",
 ]
